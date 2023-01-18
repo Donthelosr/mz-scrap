@@ -2,7 +2,7 @@ QBCore = exports['qb-core']:GetCoreObject()
 
 local PlayerData = {}
 local isLoggedIn = false
-local percent = false
+local percent    = false
 local searching  = false
 local NeededAttempts = 0
 local SucceededAttempts = 0
@@ -11,7 +11,6 @@ local craftcheck = false
 local craftprocesscheck = false
 
 cachedWreck = {}
-
 closestScrap = {
     "prop_rub_buswreck_0",
     "prop_rub_carwreck_1",
@@ -32,7 +31,8 @@ closestScrap = {
     "prop_rub_carwreck_16",
 }
 
-RegisterNetEvent("QBCore:Client:OnPlayerLoaded", function()
+RegisterNetEvent("QBCore:Client:OnPlayerLoaded")
+AddEventHandler("QBCore:Client:OnPlayerLoaded", function()
     PlayerJob = QBCore.Functions.GetPlayerData().job
     isLoggedIn = true
 end)
@@ -62,23 +62,26 @@ CreateThread(function()
             {
               type = "client",
               event = "mz-scrap:client:salvage",
+              parameters = {},
               icon = "fas fa-search",
               label = "Use Hands"
             },
             {
               type = "client",
               event = "mz-scrap:client:salvage2",
+              parameters = {},
               icon = "fas fa-screwdriver",
-              label = "Use "..Config.ScrewdriverRequiredItemLabel
+              label = "Use Screwdriver"
             },
             {
               type = "client",
               event = "mz-scrap:client:salvage3",
+              parameters = {},
               icon = "fas fa-fire-extinguisher", 
-              label = "Use "..Config.BlowtorchRequiredItemLabel
+              label = "Use Blowtorch"
             },
         },
-    distance = 0.9
+    distance = 1.5
     })  
  end)
 
@@ -86,39 +89,36 @@ CreateThread(function()
 --HAND SCRAP--
 --------------
 
-RegisterNetEvent("mz-scrap:client:salvage", function()
+RegisterNetEvent("mz-scrap:client:salvage")
+AddEventHandler("mz-scrap:client:salvage", function()
     local playerPed = PlayerPedId()
     local playerCoords = GetEntityCoords(playerPed)
     for i = 1, #closestScrap do
-        local x = GetClosestObjectOfType(playerCoords, 0.9, GetHashKey(closestScrap[i]), false, false, false)
+        local x = GetClosestObjectOfType(playerCoords, 1.5, GetHashKey(closestScrap[i]), false, false, false)
         local entity = nil
         if DoesEntityExist(x) and not IsPedSittingInAnyVehicle(PlayerPedId()) then
             entity = x
             if not cachedWreck[entity] then
-                if Config.Handskillcheck then
-                    TriggerEvent('animations:client:EmoteCommandStart', {"kneel"}) 
-                    exports['ps-ui']:Circle(function(success)
-                        if success then
-                            ExtractScrap(entity)
-                        else
-                            Wait(500)
-                            TriggerEvent('animations:client:EmoteCommandStart', {"c"})  
-                            Wait(500)
-                            if Config.mzskills then
-                                local deteriorate = -Config.handXPloss
-                                exports["mz-skills"]:UpdateSkill("Scraping", deteriorate)
-                                if Config.NotifyType == 'qb' then
-                                    QBCore.Functions.Notify('Your hand slipped!', "error", 3500)
-                                    Wait(1000)
-                                    QBCore.Functions.Notify('-'..Config.handXPloss.. 'XP to Scrapping', "error", 3500)
-                                elseif Config.NotifyType == "okok" then
-                                    exports['okokNotify']:Alert("HAND SLIPPED!", "Don't hurt yourself!", 3500, "error")
-                                    Wait(1000)
-                                    exports['okokNotify']:Alert("SKILLS", '-'..Config.handXPloss.. 'XP to Scrapping', 3500, "error")
-                                end
+                if Config.Handskillcheck then 
+                    local handsearch = math.random(Config.handscraplow, Config.handscraphigh)
+                    local success = exports['qb-lock']:StartLockPickCircle(handsearch, Config.handsearchtime)
+                    if success then
+                        ExtractScrap(entity)
+                    else
+                        if Config.mzskills == 'yes' then
+                            local deteriorate = -Config.handXPloss
+                            exports["mz-skills"]:UpdateSkill("Scraping", deteriorate)
+                            if Config.NotifyType == 'qb' then
+                                QBCore.Functions.Notify('Your hand slipped!', "error", 3500)
+                                Wait(1000)
+                                QBCore.Functions.Notify('-'..Config.handXPloss.. 'XP to Scraping', "error", 3500)
+                            elseif Config.NotifyType == "okok" then
+                                exports['okokNotify']:Alert("HAND SLIPPED!", "Don't hurt yourself!", 3500, "error")
+                                Wait(1000)
+                                exports['okokNotify']:Alert("SKILLS", '-'..Config.handXPloss.. 'XP to Scraping', 3500, "error")
                             end
                         end
-                    end, Config.handscrapparses, Config.handsearchtime)
+                    end
                 elseif not Config.Handskillcheck then 
                     ExtractScrap(entity)
                 end
@@ -134,7 +134,16 @@ RegisterNetEvent("mz-scrap:client:salvage", function()
 end)
 
 ExtractScrap = function(entity)
-    searching = true
+    if Config.mzskills == 'yes' then 
+        local BetterXP = math.random(Config.handXPlow, Config.handXPhigh)
+        local chance2 = math.random(1, 4)
+        if chance2 >= 3 then
+            skillup = BetterXP
+        else
+            skillup = Config.handXPlow
+        end
+        exports["mz-skills"]:UpdateSkill("Scraping", skillup)
+    end
     TriggerEvent('animations:client:EmoteCommandStart', {"kneel"})
     local handsearch = math.random(Config.handsearchlow * 1000, Config.handsearchhigh * 1000)
     QBCore.Functions.Progressbar("search_register", "Attempting to salvage scrap...", handsearch, false, true, {
@@ -145,19 +154,8 @@ ExtractScrap = function(entity)
         DisableControlAction(0, 170, true),
     }, {
     }, {}, {}, function() -- Done
-        Wait(500)
-        if Config.mzskills then 
-            local BetterXP = math.random(Config.handXPlow, Config.handXPhigh)
-            local chance2 = math.random(1, 4)
-            if chance2 >= 3 then
-                skillup = BetterXP
-            else
-                skillup = Config.handXPlow
-            end
-            exports["mz-skills"]:UpdateSkill("Scraping", skillup)
-        end
-        Wait(500)
         TriggerEvent('animations:client:EmoteCommandStart', {"c"})
+        searching = true
         cachedWreck[entity] = true
         QBCore.Functions.TriggerCallback('mz-scrap:server:ScrapReward', function(result)
         end)
@@ -165,14 +163,14 @@ ExtractScrap = function(entity)
         StopAnimTask(PlayerPedId(), "amb@world_human_welding@male@base", "base", 1.0)
         searching = false
     end, function() -- Cancel
+        GetMoney = false
         StopAnimTask(PlayerPedId(), "amb@world_human_welding@male@base", "base", 1.0)
         ClearPedTasks(PlayerPedId())
         if Config.NotifyType == 'qb' then
-            QBCore.Functions.Notify('You stopped scrapping', "error", 3500)
+            QBCore.Functions.Notify('You stopped scraping', "error", 3500)
         elseif Config.NotifyType == "okok" then
-            exports['okokNotify']:Alert("INTERRUPTED", "You stopped scrapping.", 3500, "error")
-        end
-        searching = false     
+            exports['okokNotify']:Alert("INTERRUPTED", "You stopped scraping.", 3500, "error")
+        end     
     end)
 end
 
@@ -180,49 +178,48 @@ end
 --SCREWDRIVER SEARCH--
 ----------------------
 
-RegisterNetEvent("mz-scrap:client:salvage2", function()
-    if Config.mzskills then 
+RegisterNetEvent("mz-scrap:client:salvage2")
+AddEventHandler("mz-scrap:client:salvage2", function()
+    if Config.mzskills == 'yes' then 
         exports["mz-skills"]:CheckSkill("Scraping", Config.screwdriverXP, function(hasskill)
             if hasskill then
-                if QBCore.Functions.HasItem(Config.ScrewdriverRequiredItem) then
+                if QBCore.Functions.HasItem("screwdriver") then
                     local playerPed = PlayerPedId()
                     local playerCoords = GetEntityCoords(playerPed)
                     for i = 1, #closestScrap do
-                        local x = GetClosestObjectOfType(playerCoords, 0.9, GetHashKey(closestScrap[i]), false, false, false)
+                        local x = GetClosestObjectOfType(playerCoords, 1.5, GetHashKey(closestScrap[i]), false, false, false)
                         local entity = nil
                         if DoesEntityExist(x) and not IsPedSittingInAnyVehicle(PlayerPedId()) then
                             entity = x
                             if not cachedWreck[entity] then
                                 if Config.Screwdriverskillcheck then 
-                                    TriggerEvent('animations:client:EmoteCommandStart', {"kneel"}) 
-                                    exports['ps-ui']:Circle(function(success)
-                                        if success then
-                                            ExtractScrap2(entity)
-                                        else
-                                            local deteriorate = -Config.screwdriverXPloss
-                                            exports["mz-skills"]:UpdateSkill("Scraping", deteriorate)
-                                            if Config.NotifyType == 'qb' then
-                                                QBCore.Functions.Notify('Your screwdriver flexes in your hand...', "error", 3500)
-                                                Wait(1000)
-                                                QBCore.Functions.Notify('-'..Config.screwdriverXPloss.. 'XP to Scrapping', "error", 3500)
-                                            elseif Config.NotifyType == "okok" then
-                                                exports['okokNotify']:Alert("TOOL SHAKES", "Your screwdriver flexes in your hand...", 3500, "error")
-                                                Wait(1000)
-                                                exports['okokNotify']:Alert("SKILLS", '-'..Config.screwdriverXPloss.. 'XP to Scrapping', 3500, "error")
-                                            end
+                                    local screwparse = math.random(Config.screwscraplow, Config.screwcraphigh)
+                                    local success = exports['qb-lock']:StartLockPickCircle(screwparse, Config.screwsearchtime)
+                                    if success then
+                                        ExtractScrap2(entity)
+                                    else
+                                        local deteriorate = -Config.screwdriverXPloss
+                                        exports["mz-skills"]:UpdateSkill("Scraping", deteriorate)
+                                        if Config.NotifyType == 'qb' then
+                                            QBCore.Functions.Notify('Your screwdriver flexes in your hand...', "error", 3500)
                                             Wait(1000)
-                                            TriggerEvent('animations:client:EmoteCommandStart', {"c"}) 
-                                            local failchance = math.random(1, 100)
-                                            if failchance <= Config.screwdriverfail then 
-                                                TriggerServerEvent('mz-scrap:server:screwdriverbreak')
-                                                if Config.NotifyType == 'qb' then
-                                                    QBCore.Functions.Notify('Damn! Your screwdriver breaks!', "error", 3500)
-                                                elseif Config.NotifyType == "okok" then
-                                                    exports['okokNotify']:Alert("SCREWDRIVER SNAPS", "Damn! Your screwdriver breaks!", 3500, "error")
-                                                end
+                                            QBCore.Functions.Notify('-'..Config.screwdriverXPloss.. 'XP to Scraping', "error", 3500)
+                                        elseif Config.NotifyType == "okok" then
+                                            exports['okokNotify']:Alert("TOOL SHAKES", "Your screwdriver flexes in your hand...", 3500, "error")
+                                            Wait(1000)
+                                            exports['okokNotify']:Alert("SKILLS", '-'..Config.screwdriverXPloss.. 'XP to Scraping', 3500, "error")
+                                        end
+                                        Wait(1000)
+                                        local failchance = math.random(1, 100)
+                                        if failchance <= Config.screwdriverfail then 
+                                            TriggerServerEvent('mz-scrap:server:screwdriverbreak')
+                                            if Config.NotifyType == 'qb' then
+                                                QBCore.Functions.Notify('Damn! Your screwdriver breaks!', "error", 3500)
+                                            elseif Config.NotifyType == "okok" then
+                                                exports['okokNotify']:Alert("SCREWDRIVER SNAPS", "Damn! Your screwdriver breaks!", 3500, "error")
                                             end
                                         end
-                                    end, Config.screwscrapparses, Config.screwsearchtime)
+                                    end
                                 elseif not Config.Screwdriverskillcheck then 
                                     ExtractScrap2(entity)
                                 end
@@ -237,7 +234,7 @@ RegisterNetEvent("mz-scrap:client:salvage2", function()
                     end
                 else
                     local requiredItems = {
-                        [1] = {name = QBCore.Shared.Items[Config.ScrewdriverRequiredItem]["name"], image = QBCore.Shared.Items[Config.ScrewdriverRequiredItem]["image"]},
+                        [1] = {name = QBCore.Shared.Items["screwdriver"]["name"], image = QBCore.Shared.Items["screwdriver"]["image"]},
                     }
                     if Config.NotifyType == 'qb' then
                         QBCore.Functions.Notify('You need a screwdriver to access these parts.', "error", 3500)
@@ -250,46 +247,43 @@ RegisterNetEvent("mz-scrap:client:salvage2", function()
                 end 
             else
                 if Config.NotifyType == 'qb' then
-                    QBCore.Functions.Notify('You do not have enough Scrapping skill, you need a minimum of '..Config.screwdriverXP..'XP.', "error", 3500)
+                    QBCore.Functions.Notify('You do not have enough Scraping skill, you need a minimum of '..Config.screwdriverXP..'XP.', "error", 3500)
                 elseif Config.NotifyType == "okok" then
-                    exports['okokNotify']:Alert("SKILLS", 'You do not have enough Scrapping skill, you need a minimum of '..Config.screwdriverXP..'XP.', 3500, "error")
+                    exports['okokNotify']:Alert("SKILLS", 'You do not have enough Scraping skill, you need a minimum of '..Config.screwdriverXP..'XP.', 3500, "error")
                 end
             end
         end)
-    elseif not Config.mzskills then
-        if QBCore.Functions.HasItem(Config.ScrewdriverRequiredItem) then
+    elseif Config.mzskills == 'no' then
+        if QBCore.Functions.HasItem("screwdriver") then
             local playerPed = PlayerPedId()
             local playerCoords = GetEntityCoords(playerPed)
             for i = 1, #closestScrap do
-                local x = GetClosestObjectOfType(playerCoords, 0.9, GetHashKey(closestScrap[i]), false, false, false)
+                local x = GetClosestObjectOfType(playerCoords, 1.5, GetHashKey(closestScrap[i]), false, false, false)
                 local entity = nil
                 if DoesEntityExist(x) and not IsPedSittingInAnyVehicle(PlayerPedId()) then
                     entity = x
                     if not cachedWreck[entity] then
-                        if Config.Screwdriverskillcheck then
-                            TriggerEvent('animations:client:EmoteCommandStart', {"kneel"})  
-                            exports['ps-ui']:Circle(function(success)
-                                if success then
-                                    ExtractScrap2(entity)
-                                else
-                                    if Config.NotifyType == 'qb' then
-                                        QBCore.Functions.Notify('Your screwdriver flexes in your hand...', "error", 3500)
-                                    elseif Config.NotifyType == "okok" then
-                                        exports['okokNotify']:Alert("TOOL SHAKES", "Your screwdriver flexes in your hand...", 3500, "error")
-                                    end
-                                    local failchance = math.random(1, 100)
-                                    if failchance <= Config.screwdriverfail then 
-                                        TriggerServerEvent('mz-scrap:server:screwdriverbreak')
-                                        if Config.NotifyType == 'qb' then
-                                            QBCore.Functions.Notify('Damn! Your screwdriver breaks!', "error", 3500)
-                                        elseif Config.NotifyType == "okok" then
-                                            exports['okokNotify']:Alert("SCREWDRIVER SNAPS", "Damn! Your screwdriver breaks!", 3500, "error")
-                                        end
-                                    end
-                                    Wait(500)
-                                    TriggerEvent('animations:client:EmoteCommandStart', {"c"}) 
+                        if Config.Screwdriverskillcheck then 
+                            local screwparse = math.random(Config.screwscraplow, Config.screwcraphigh)
+                            local success = exports['qb-lock']:StartLockPickCircle(screwparse, Config.screwsearchtime)
+                            if success then
+                                ExtractScrap2(entity)
+                            else
+                                if Config.NotifyType == 'qb' then
+                                    QBCore.Functions.Notify('Your screwdriver flexes in your hand...', "error", 3500)
+                                elseif Config.NotifyType == "okok" then
+                                    exports['okokNotify']:Alert("TOOL SHAKES", "Your screwdriver flexes in your hand...", 3500, "error")
                                 end
-                            end, Config.screwscrapparses, Config.screwsearchtime)
+                                local failchance = math.random(1, 100)
+                                if failchance <= Config.screwdriverfail then 
+                                    TriggerServerEvent('mz-scrap:server:screwdriverbreak')
+                                    if Config.NotifyType == 'qb' then
+                                        QBCore.Functions.Notify('Damn! Your screwdriver breaks!', "error", 3500)
+                                    elseif Config.NotifyType == "okok" then
+                                        exports['okokNotify']:Alert("SCREWDRIVER SNAPS", "Damn! Your screwdriver breaks!", 3500, "error")
+                                    end
+                                end
+                            end
                         elseif not Config.Screwdriverskillcheck then 
                             ExtractScrap2(entity)
                         end
@@ -304,12 +298,12 @@ RegisterNetEvent("mz-scrap:client:salvage2", function()
             end
         else
             local requiredItems = {
-                [1] = {name = QBCore.Shared.Items[Config.ScrewdriverRequiredItem]["name"], image = QBCore.Shared.Items[Config.ScrewdriverRequiredItem]["image"]},
+                [1] = {name = QBCore.Shared.Items["screwdriver"]["name"], image = QBCore.Shared.Items["screwdriver"]["image"]},
             }
             if Config.NotifyType == 'qb' then
-                QBCore.Functions.Notify('You need a '..Config.ScrewdriverRequiredItemLabel..' to access these parts.', "error", 3500)
+                QBCore.Functions.Notify('You need a screwdriver to access these parts.', "error", 3500)
             elseif Config.NotifyType == "okok" then
-                exports['okokNotify']:Alert("WRONG TOOLS", 'You need a '..Config.ScrewdriverRequiredItemLabel..' to access these parts.', 3500, "error")
+                exports['okokNotify']:Alert("WRONG TOOLS", "You need a screwdriver to access these parts.", 3500, "error")
             end
             TriggerEvent('inventory:client:requiredItems', requiredItems, true)
             Wait(3000)
@@ -319,7 +313,18 @@ RegisterNetEvent("mz-scrap:client:salvage2", function()
 end)
 
 ExtractScrap2 = function(entity)
-    searching = true
+    if Config.mzskills == 'yes' then 
+        local BetterXP2 = math.random(Config.screwdriverXPlow, Config.screwdriverXPhigh)
+        local chance2 = math.random(1, 10)
+        if chance2 >= 8 then
+            skillup2 = BetterXP2
+        elseif chance2 > 5 and chance2 < 8 then
+            skillup2 = Config.screwdriverXPmid
+        elseif chance2 < 6 then
+            skillup2 = Config.screwdriverXPlow
+        end
+        exports["mz-skills"]:UpdateSkill("Scraping", skillup2)
+    end
     TriggerEvent('animations:client:EmoteCommandStart', {"mechanic"})
     local screwsearchtime = math.random(Config.screwsearchlow * 1000, Config.screwsearchhigh * 1000)
     QBCore.Functions.Progressbar("search_register", "Attempting to salvage scrap...", screwsearchtime, false, true, {
@@ -331,6 +336,7 @@ ExtractScrap2 = function(entity)
     }, {
     }, {}, {}, function() -- Done
         TriggerEvent('animations:client:EmoteCommandStart', {"c"})
+        searching = true
         cachedWreck[entity] = true
         QBCore.Functions.TriggerCallback('mz-scrap:server:ScrapReward2', function(result)
         end)
@@ -339,35 +345,22 @@ ExtractScrap2 = function(entity)
         if successchance <= Config.screwdriversuccess then 
             TriggerServerEvent('mz-scrap:server:screwdriverbreak')
             if Config.NotifyType == 'qb' then
-                QBCore.Functions.Notify('Damn! Your '..Config.ScrewdriverRequiredItemLabel..' breaks!', "error", 3500)
+                QBCore.Functions.Notify('Damn! Your screwdriver breaks!', "error", 3500)
             elseif Config.NotifyType == "okok" then
-                exports['okokNotify']:Alert(Config.ScrewdriverRequiredItemLabel.." SNAPS", "Damn! Your "..Config.ScrewdriverRequiredItemLabel.." breaks!", 3500, "error")
+                exports['okokNotify']:Alert("SCREWDRIVER SNAPS", "Damn! Your screwdriver breaks!", 3500, "error")
             end
         end
         ClearPedTasks(PlayerPedId())
         StopAnimTask(PlayerPedId(), "amb@world_human_welding@male@base", "base", 1.0)
-        Wait(500)
-        if Config.mzskills then 
-            local BetterXP2 = math.random(Config.screwdriverXPlow, Config.screwdriverXPhigh)
-            local chance2 = math.random(1, 10)
-            if chance2 >= 8 then
-                skillup2 = BetterXP2
-            elseif chance2 > 5 and chance2 < 8 then
-                skillup2 = Config.screwdriverXPmid
-            elseif chance2 < 6 then
-                skillup2 = Config.screwdriverXPlow
-            end
-            exports["mz-skills"]:UpdateSkill("Scraping", skillup2)
-        end
         searching = false
     end, function() -- Cancel
-        searching = false
+        GetMoney = false
         StopAnimTask(PlayerPedId(), "amb@world_human_welding@male@base", "base", 1.0)
         ClearPedTasks(PlayerPedId())
         if Config.NotifyType == 'qb' then
-            QBCore.Functions.Notify('You stopped scrapping', "error", 3500)
+            QBCore.Functions.Notify('You stopped scraping', "error", 3500)
         elseif Config.NotifyType == "okok" then
-            exports['okokNotify']:Alert("INTERRUPTED", "You stopped scrapping.", 3500, "error")
+            exports['okokNotify']:Alert("INTERRUPTED", "You stopped scraping.", 3500, "error")
         end   
     end)
 end
@@ -376,50 +369,47 @@ end
 --BLOWTORCH SEARCH--
 --------------------
 
-RegisterNetEvent("mz-scrap:client:salvage3", function()
-    if Config.mzskills then 
+RegisterNetEvent("mz-scrap:client:salvage3")
+AddEventHandler("mz-scrap:client:salvage3", function()
+    if Config.mzskills == 'yes' then 
         exports["mz-skills"]:CheckSkill("Scraping", Config.blowtorchXP, function(hasskill)
             if hasskill then
-                if QBCore.Functions.HasItem(Config.BlowtorchRequiredItem) then
+                if QBCore.Functions.HasItem("blowtorch") then
                     local playerPed = PlayerPedId()
                     local playerCoords = GetEntityCoords(playerPed)
                     for i = 1, #closestScrap do
-                        local x = GetClosestObjectOfType(playerCoords, 0.9, GetHashKey(closestScrap[i]), false, false, false)
+                        local x = GetClosestObjectOfType(playerCoords, 1.5, GetHashKey(closestScrap[i]), false, false, false)
                         local entity = nil
                         if DoesEntityExist(x) and not IsPedSittingInAnyVehicle(PlayerPedId()) then
                             entity = x
                             if not cachedWreck[entity] then
                                 if Config.Blowtorchskillcheck then 
-                                    TriggerEvent('animations:client:EmoteCommandStart', {"kneel"}) 
-                                    exports['ps-ui']:Circle(function(success)
-                                        if success then
-                                            ExtractScrap3(entity)
-                                        else
-                                            Wait(500)
-                                            TriggerEvent('animations:client:EmoteCommandStart', {"c"})  
-                                            Wait(500)
-                                            local deteriorate = -Config.blowtorchXPloss
-                                            exports["mz-skills"]:UpdateSkill("Scraping", deteriorate)
+                                    local blowparse = math.random(Config.blowscraplow, Config.blowscraphigh)
+                                    local success = exports['qb-lock']:StartLockPickCircle(blowparse, Config.blowsearchtime)
+                                    if success then
+                                        ExtractScrap3(entity)
+                                    else
+                                        local deteriorate = -Config.blowtorchXPloss
+                                        exports["mz-skills"]:UpdateSkill("Scraping", deteriorate)
+                                        if Config.NotifyType == 'qb' then
+                                            QBCore.Functions.Notify('Your blowtorch heats up uncomfortably...', "error", 3500)
+                                            Wait(1000)
+                                            QBCore.Functions.Notify('-'..Config.blowtorchXPloss.. 'XP to Scraping', "error", 3500)
+                                        elseif Config.NotifyType == "okok" then
+                                            exports['okokNotify']:Alert("TORCH HEATS UP", "Your blowtorch heats up uncomfortably...", 3500, "error")
+                                            Wait(1000)
+                                            exports['okokNotify']:Alert("SKILLS", '-'..Config.blowtorchXPloss.. 'XP to Scraping', 3500, "error")
+                                        end
+                                        local failchance2 = math.random(1, 100)
+                                        if failchance2 <= Config.blowtorchfail then 
+                                            TriggerServerEvent('mz-scrap:server:blowtorchbreak')
                                             if Config.NotifyType == 'qb' then
-                                                QBCore.Functions.Notify('Your '..Config.BlowtorchRequiredItemLabel..' heats up uncomfortably...', "error", 3500)
-                                                Wait(1000)
-                                                QBCore.Functions.Notify('-'..Config.blowtorchXPloss.. 'XP to Scrapping', "error", 3500)
+                                                QBCore.Functions.Notify('Damn! Your blowtorch burns out!', "error", 3500)
                                             elseif Config.NotifyType == "okok" then
-                                                exports['okokNotify']:Alert("TORCH HEATS UP", "Your "..Config.BlowtorchRequiredItemLabel.." heats up uncomfortably...", 3500, "error")
-                                                Wait(1000)
-                                                exports['okokNotify']:Alert("SKILLS", '-'..Config.blowtorchXPloss.. 'XP to Scrapping', 3500, "error")
-                                            end
-                                            local failchance2 = math.random(1, 100)
-                                            if failchance2 <= Config.blowtorchfail then 
-                                                TriggerServerEvent('mz-scrap:server:blowtorchbreak')
-                                                if Config.NotifyType == 'qb' then
-                                                    QBCore.Functions.Notify('Damn! Your '..Config.BlowtorchRequiredItemLabel..' burns out!', "error", 3500)
-                                                elseif Config.NotifyType == "okok" then
-                                                    exports['okokNotify']:Alert("BLOWTORCH FRIED", "Damn! Your "..Config.BlowtorchRequiredItemLabel.." burns out!", 3500, "error")
-                                                end
+                                                exports['okokNotify']:Alert("BLOWTORCH FRIED", "Damn! Your blowtorch burns out!", 3500, "error")
                                             end
                                         end
-                                    end, Config.blowscrapparses, Config.blowsearchtime)
+                                    end
                                 elseif not Config.Blowtorchskillcheck then 
                                     ExtractScrap3(entity)
                                 end
@@ -434,12 +424,12 @@ RegisterNetEvent("mz-scrap:client:salvage3", function()
                     end
                 else
                     local requiredItems = {
-                        [1] = {name = QBCore.Shared.Items[Config.BlowtorchRequiredItem]["name"], image = QBCore.Shared.Items[Config.BlowtorchRequiredItem]["image"]},
+                        [1] = {name = QBCore.Shared.Items["blowtorch"]["name"], image = QBCore.Shared.Items["blowtorch"]["image"]},
                     }
                     if Config.NotifyType == 'qb' then
-                        QBCore.Functions.Notify('You need a '..Config.BlowtorchRequiredItemLabel..' to unweld these parts.', "error", 3500)
+                        QBCore.Functions.Notify('You need a blowtorch to unweld these parts.', "error", 3500)
                     elseif Config.NotifyType == "okok" then
-                        exports['okokNotify']:Alert("WRONG TOOLS", "You need a "..Config.BlowtorchRequiredItemLabel.." to unweld these parts.", 3500, "error")
+                        exports['okokNotify']:Alert("WRONG TOOLS", "You need a blowtorch to unweld these parts.", 3500, "error")
                     end
                     TriggerEvent('inventory:client:requiredItems', requiredItems, true)
                     Wait(3000)
@@ -447,46 +437,44 @@ RegisterNetEvent("mz-scrap:client:salvage3", function()
                 end    
             else
                 if Config.NotifyType == 'qb' then
-                    QBCore.Functions.Notify('You do not have enough Scrapping skill ('..Config.blowtorchXP..'XP needed)', "error", 3500)
+                    QBCore.Functions.Notify('You do not have enough Scraping skill ('..Config.blowtorchXP..'XP needed)', "error", 3500)
                 elseif Config.NotifyType == "okok" then
-                    exports['okokNotify']:Alert("SKILLS", 'You do not have enough Scrapping skill ('..Config.blowtorchXP..'XP needed)', 3500, "error")
+                    exports['okokNotify']:Alert("SKILLS", 'You do not have enough Scraping skill ('..Config.blowtorchXP..'XP needed)', 3500, "error")
                 end        
             end
         end)
-    elseif not Config.mzskills then 
-        if QBCore.Functions.HasItem(Config.BlowtorchRequiredItem) then
+    elseif Config.mzskills == 'no' then 
+        if QBCore.Functions.HasItem("blowtorch") then
             local playerPed = PlayerPedId()
             local playerCoords = GetEntityCoords(playerPed)
             for i = 1, #closestScrap do
-                local x = GetClosestObjectOfType(playerCoords, 0.9, GetHashKey(closestScrap[i]), false, false, false)
+                local x = GetClosestObjectOfType(playerCoords, 1.5, GetHashKey(closestScrap[i]), false, false, false)
                 local entity = nil
                 if DoesEntityExist(x) and not IsPedSittingInAnyVehicle(PlayerPedId()) then
                     entity = x
                     if not cachedWreck[entity] then
                         if Config.Blowtorchskillcheck then 
-                            TriggerEvent('animations:client:EmoteCommandStart', {"kneel"})  
-                            exports['ps-ui']:Circle(function(success)
-                                if success then
-                                    ExtractScrap3(entity)
-                                else
+                            local BlowParse = math.random(Config.blowscraplow, Config.blowscraphigh)
+                            local success = exports['qb-lock']:StartLockPickCircle(BlowParse, Config.blowsearchtime)
+                            if success then
+                                ExtractScrap3(entity)
+                            else
+                                if Config.NotifyType == 'qb' then
+                                    QBCore.Functions.Notify('Your blowtorch heats up uncomfortably...', "error", 3500)
+                                elseif Config.NotifyType == "okok" then
+                                    exports['okokNotify']:Alert("TORCH HEATS UP", "Your blowtorch heats up uncomfortably...", 3500, "error")
+                                end
+                                Wait(1000)
+                                local failchance2 = math.random(1, 100)
+                                if failchance2 <= Config.blowtorchfail then 
+                                    TriggerServerEvent('mz-scrap:server:blowtorchbreak')
                                     if Config.NotifyType == 'qb' then
-                                        QBCore.Functions.Notify('Your '..Config.BlowtorchRequiredItemLabel..' heats up uncomfortably...', "error", 3500)
+                                        QBCore.Functions.Notify('Damn! Your blowtorch burns out!', "error", 3500)
                                     elseif Config.NotifyType == "okok" then
-                                        exports['okokNotify']:Alert("TORCH HEATS UP", "Your "..Config.BlowtorchRequiredItemLabel.." heats up uncomfortably...", 3500, "error")
-                                    end
-                                    Wait(1000)
-                                    TriggerEvent('animations:client:EmoteCommandStart', {"c"}) 
-                                    local failchance2 = math.random(1, 100)
-                                    if failchance2 <= Config.blowtorchfail then 
-                                        TriggerServerEvent('mz-scrap:server:blowtorchbreak')
-                                        if Config.NotifyType == 'qb' then
-                                            QBCore.Functions.Notify('Damn! Your '..Config.BlowtorchRequiredItemLabel..' burns out!', "error", 3500)
-                                        elseif Config.NotifyType == "okok" then
-                                            exports['okokNotify']:Alert("BLOWTORCH FRIED", "Damn! Your "..Config.BlowtorchRequiredItemLabel.." burns out!", 3500, "error")
-                                        end
+                                        exports['okokNotify']:Alert("BLOWTORCH FRIED", "Damn! Your blowtorch burns out!", 3500, "error")
                                     end
                                 end
-                            end, Config.blowscrapparses, Config.blowsearchtime)
+                            end
                         elseif not Config.Blowtorchskillcheck then 
                             ExtractScrap3(entity)
                         end
@@ -501,12 +489,12 @@ RegisterNetEvent("mz-scrap:client:salvage3", function()
             end
         else
             local requiredItems = {
-                [1] = {name = QBCore.Shared.Items[Config.BlowtorchRequiredItem]["name"], image = QBCore.Shared.Items[Config.BlowtorchRequiredItem]["image"]},
+                [1] = {name = QBCore.Shared.Items["blowtorch"]["name"], image = QBCore.Shared.Items["blowtorch"]["image"]},
             }
             if Config.NotifyType == 'qb' then
-                QBCore.Functions.Notify('You need a '..Config.BlowtorchRequiredItemLabel..' to unweld these parts.', "error", 3500)
+                QBCore.Functions.Notify('You need a blowtorch to unweld these parts.', "error", 3500)
             elseif Config.NotifyType == "okok" then
-                exports['okokNotify']:Alert("WRONG TOOLS", "You need a "..Config.BlowtorchRequiredItemLabel.." to unweld these parts.", 3500, "error")
+                exports['okokNotify']:Alert("WRONG TOOLS", "You need a blowtorch to unweld these parts.", 3500, "error")
             end
             TriggerEvent('inventory:client:requiredItems', requiredItems, true)
             Wait(3000)
@@ -516,9 +504,18 @@ RegisterNetEvent("mz-scrap:client:salvage3", function()
 end)
 
 ExtractScrap3 = function(entity)
-    TriggerEvent('animations:client:EmoteCommandStart', {"c"}) 
-    Wait(250)
-    searching = true
+    if Config.mzskills == 'yes' then 
+        local BetterXP2 = math.random(Config.blowtorchXPlow, Config.blowtorchXPhigh)
+        local chance2 = math.random(1, 10)
+        if chance2 >= 8 then
+            skillup2 = BetterXP2
+        elseif chance2 > 5 and chance2 < 8 then
+            skillup2 = Config.blowtorchXPmid
+        elseif chance2 < 6 then
+            skillup2 = Config.blowtorchXPlow
+        end
+        exports["mz-skills"]:UpdateSkill("Scraping", skillup2)
+    end
     TriggerEvent('animations:client:EmoteCommandStart', {"weld"})
     local blowtime = math.random(Config.blowsearchlow * 1000, Config.blowsearchhigh * 1000)
     QBCore.Functions.Progressbar("search_register", "Attempting to salvage scrap...", blowtime, false, true, {
@@ -530,26 +527,13 @@ ExtractScrap3 = function(entity)
     }, {
     }, {}, {}, function() -- Done
         TriggerEvent('animations:client:EmoteCommandStart', {"c"})
-        searching = false
+        searching = true
         cachedWreck[entity] = true
         QBCore.Functions.TriggerCallback('mz-scrap:server:ScrapReward3', function(result)
         end)
         ClearPedTasks(PlayerPedId())
         StopAnimTask(PlayerPedId(), "amb@world_human_welding@male@base", "base", 1.0)
-        Wait(500)
-        if Config.mzskills then 
-            local BetterXP2 = math.random(Config.blowtorchXPlow, Config.blowtorchXPhigh)
-            local chance2 = math.random(1, 10)
-            if chance2 >= 8 then
-                skillup2 = BetterXP2
-            elseif chance2 > 5 and chance2 < 8 then
-                skillup2 = Config.blowtorchXPmid
-            elseif chance2 < 6 then
-                skillup2 = Config.blowtorchXPlow
-            end
-            exports["mz-skills"]:UpdateSkill("Scraping", skillup2)
-        end
-        Wait(500)
+        searching = false
         local successchance2 = math.random(1, 100)
         if successchance2 <= Config.blowtorchsuccess then 
             TriggerServerEvent('mz-scrap:server:blowtorchbreak')
@@ -560,13 +544,13 @@ ExtractScrap3 = function(entity)
             end
         end
     end, function() -- Cancel
-        searching = false
+        GetMoney = false
         StopAnimTask(PlayerPedId(), "amb@world_human_welding@male@base", "base", 1.0)
         ClearPedTasks(PlayerPedId())
         if Config.NotifyType == 'qb' then
-            QBCore.Functions.Notify('You stopped scrapping', "error", 3500)
+            QBCore.Functions.Notify('You stopped scraping', "error", 3500)
         elseif Config.NotifyType == "okok" then
-            exports['okokNotify']:Alert("INTERRUPTED", "You stopped scrapping.", 3500, "error")
+            exports['okokNotify']:Alert("INTERRUPTED", "You stopped scraping.", 3500, "error")
         end   
     end)
 end
@@ -579,33 +563,27 @@ end
 --TIRES--
 ---------
 
-RegisterNetEvent('mz-scrap:client:BreakdownTires', function()
-    if not craftcheck then 
-        if QBCore.Functions.HasItem("oldtire") then
-            TriggerServerEvent("mz-scrap:server:BreakdownTires")
-        else
-            local requiredItems = {
-                [1] = {name = QBCore.Shared.Items["oldtire"]["name"], image = QBCore.Shared.Items["oldtire"]["image"]}, 
-            }  
-            if Config.NotifyType == 'qb' then
-                QBCore.Functions.Notify('You cannot process tires without tires...', "error", 3500)
-            elseif Config.NotifyType == "okok" then
-                exports['okokNotify']:Alert("NEED TIRES", "You cannot process tires without tires...", 3500, "error")
-            end   
-            TriggerEvent('inventory:client:requiredItems', requiredItems, true)
-            Wait(3000)
-            TriggerEvent('inventory:client:requiredItems', requiredItems, false)
-        end
-    else 
+RegisterNetEvent('mz-scrap:client:BreakdownTires')
+AddEventHandler('mz-scrap:client:BreakdownTires', function()
+    if QBCore.Functions.HasItem("oldtire") then
+        TriggerServerEvent("mz-scrap:server:BreakdownTires")
+    else
+        local requiredItems = {
+            [1] = {name = QBCore.Shared.Items["oldtire"]["name"], image = QBCore.Shared.Items["oldtire"]["image"]}, 
+        }  
         if Config.NotifyType == 'qb' then
-            QBCore.Functions.Notify('You are already doing something...', "error", 3500)
+            QBCore.Functions.Notify('You cannot process tires without tires...', "error", 3500)
         elseif Config.NotifyType == "okok" then
-            exports['okokNotify']:Alert("SLOW DOWN", 'You are already doing something...', 3500, "error")
-        end 
-    end 
+            exports['okokNotify']:Alert("NEED TIRES", "You cannot process tires without tires...", 3500, "error")
+        end   
+        TriggerEvent('inventory:client:requiredItems', requiredItems, true)
+        Wait(3000)
+        TriggerEvent('inventory:client:requiredItems', requiredItems, false)
+    end
 end)
 
-RegisterNetEvent('mz-scrap:client:BreakdownTiresMinigame', function(source)
+RegisterNetEvent('mz-scrap:client:BreakdownTiresMinigame')
+AddEventHandler('mz-scrap:client:BreakdownTiresMinigame', function(source)
     TriggerEvent('animations:client:EmoteCommandStart', {"mechanic"})
     BreakdownTiresMinigame(source)
 end)
@@ -631,7 +609,7 @@ function BreakdownTiresMinigame(source)
                 exports['okokNotify']:Alert("RECEIVED RUBBER", "You extract the good rubber from the wrecked tires", 3500, "success")
             end   
             Wait(500)
-            if Config.mzskills then 
+            if Config.mzskills == 'yes' then 
                 local BetterXP = math.random(Config.tireXPlow, Config.tireXPhigh)
                 local multiplier = math.random(1, 4)
                 if multiplier > 3 then
@@ -653,30 +631,30 @@ function BreakdownTiresMinigame(source)
             })
         end
 	end, function()
-        if Config.NotifyType == 'qb' then
-            QBCore.Functions.Notify('You cut too far and ruin the tires...', "error", 3500)
-        elseif Config.NotifyType == "okok" then
-            exports['okokNotify']:Alert("TIRES RUINED", "You cut too far and ruin the tires...", 3500, "error")
-        end
-        Wait(500)
-        if Config.mzskills then 
-            local deteriorate = -Config.tireXPloss
-            exports["mz-skills"]:UpdateSkill("Scraping", deteriorate)
             if Config.NotifyType == 'qb' then
-                QBCore.Functions.Notify('-'..Config.tireXPloss..'XP to Scrapping', "error", 3500)
+                QBCore.Functions.Notify('You cut too far and ruin the tires...', "error", 3500)
             elseif Config.NotifyType == "okok" then
-                exports['okokNotify']:Alert("SKILLS", '-'..Config.tireXPloss..'XP to Scrapping', 3500, "error")
-            end   
-        end
-        FailedAttemps = 0
-        SucceededAttempts = 0
-        NeededAttempts = 0
-        ClearPedTasks(PlayerPedId())
+                exports['okokNotify']:Alert("TIRES RUINED", "You cut too far and ruin the tires...", 3500, "error")
+            end
+            Wait(500)
+            if Config.mzskills == 'yes' then 
+                local deteriorate = -Config.tireXPloss
+                exports["mz-skills"]:UpdateSkill("Scraping", deteriorate)
+                if Config.NotifyType == 'qb' then
+                    QBCore.Functions.Notify('-'..Config.tireXPloss..'XP to Scraping', "error", 3500)
+                elseif Config.NotifyType == "okok" then
+                    exports['okokNotify']:Alert("SKILLS", '-'..Config.tireXPloss..'XP to Scraping', 3500, "error")
+                end   
+            end
+            FailedAttemps = 0
+            SucceededAttempts = 0
+            NeededAttempts = 0
+            craftprocesscheck = false
+            ClearPedTasks(PlayerPedId())
     end)
 end
 
 function BreakTiresProcess()
-    craftcheck = true 
     local tiretime = math.random(Config.tiretimelow * 1000, Config.tiretimehigh * 1000)
     QBCore.Functions.Progressbar("grind_coke", "Carefully cutting good tread", tiretime, false, true, {
         disableMovement = true,
@@ -689,13 +667,13 @@ function BreakTiresProcess()
         ClearPedTasks(PlayerPedId())
         craftcheck = false
     end, function() -- Cancel
+        openingDoor = false
         ClearPedTasks(PlayerPedId())
         if Config.NotifyType == 'qb' then
             QBCore.Functions.Notify('Process Cancelled', "error", 3500)
         elseif Config.NotifyType == "okok" then
             exports['okokNotify']:Alert("TASK STOPPED", "Process Cancelled", 3500, "error")
         end 
-        craftcheck = false
     end)
 end
 
@@ -703,27 +681,14 @@ end
 --NAILS--
 ---------
 
-RegisterNetEvent('mz-scrap:client:CleanNails', function()
-    if not craftcheck then 
-        if QBCore.Functions.HasItem("rustynails") then
-            if QBCore.Functions.HasItem("wd40") then
-                TriggerServerEvent("mz-scrap:server:CleanNails")
-            else
-                local requiredItems = {
-                    [1] = {name = QBCore.Shared.Items["wd40"]["name"], image = QBCore.Shared.Items["wd40"]["image"]},
-                }  
-                if Config.NotifyType == 'qb' then
-                    QBCore.Functions.Notify('You need something rusted and some rust remover...', "error", 3500)
-                elseif Config.NotifyType == "okok" then
-                    exports['okokNotify']:Alert("NAILS + WD40", "You need something rusted and some rust remover...", 3500, "error")
-                end   
-                TriggerEvent('inventory:client:requiredItems', requiredItems, true)
-                Wait(3000)
-                TriggerEvent('inventory:client:requiredItems', requiredItems, false)
-            end
+RegisterNetEvent('mz-scrap:client:CleanNails')
+AddEventHandler('mz-scrap:client:CleanNails', function()
+    if QBCore.Functions.HasItem("rustynails") then
+        if QBCore.Functions.HasItem("wd40") then
+            TriggerServerEvent("mz-scrap:server:CleanNails")
         else
             local requiredItems = {
-                [1] = {name = QBCore.Shared.Items["rustynails"]["name"], image = QBCore.Shared.Items["rustynails"]["image"]}, 
+                [1] = {name = QBCore.Shared.Items["wd40"]["name"], image = QBCore.Shared.Items["wd40"]["image"]},
             }  
             if Config.NotifyType == 'qb' then
                 QBCore.Functions.Notify('You need something rusted and some rust remover...', "error", 3500)
@@ -734,16 +699,23 @@ RegisterNetEvent('mz-scrap:client:CleanNails', function()
             Wait(3000)
             TriggerEvent('inventory:client:requiredItems', requiredItems, false)
         end
-    else 
+    else
+        local requiredItems = {
+            [1] = {name = QBCore.Shared.Items["rustynails"]["name"], image = QBCore.Shared.Items["rustynails"]["image"]}, 
+        }  
         if Config.NotifyType == 'qb' then
-            QBCore.Functions.Notify('You are already doing something...', "error", 3500)
+            QBCore.Functions.Notify('You need something rusted and some rust remover...', "error", 3500)
         elseif Config.NotifyType == "okok" then
-            exports['okokNotify']:Alert("SLOW DOWN", 'You are already doing something...', 3500, "error")
-        end 
-    end 
+            exports['okokNotify']:Alert("NAILS + WD40", "You need something rusted and some rust remover...", 3500, "error")
+        end   
+        TriggerEvent('inventory:client:requiredItems', requiredItems, true)
+        Wait(3000)
+        TriggerEvent('inventory:client:requiredItems', requiredItems, false)
+    end
 end)
 
-RegisterNetEvent('mz-scrap:client:CleanNailsMinigame', function(source)
+RegisterNetEvent('mz-scrap:client:CleanNailsMinigame')
+AddEventHandler('mz-scrap:client:CleanNailsMinigame', function(source)
     TriggerEvent('animations:client:EmoteCommandStart', {"mechanic"})
     CleanNailsMinigame(source)
 end)
@@ -763,7 +735,7 @@ function CleanNailsMinigame(source)
         if SucceededAttempts + 1 >= NeededAttempts then
             CleanNailsProcess()
             Wait(500)
-            if Config.mzskills then 
+            if Config.mzskills == 'yes' then 
                 local BetterXP = math.random(Config.nailXPlow, Config.nailXPhigh)
                 local multiplier = math.random(1, 4)
                 if multiplier > 3 then
@@ -796,13 +768,13 @@ function CleanNailsMinigame(source)
                 exports['okokNotify']:Alert("BAD NAILS", "The rusted nails disintegrate...", 3500, "error")
             end
             Wait(500)
-            if Config.mzskills then 
+            if Config.mzskills == 'yes' then 
                 local deteriorate = -Config.nailXPloss
                 exports["mz-skills"]:UpdateSkill("Scraping", deteriorate)
                 if Config.NotifyType == 'qb' then
-                    QBCore.Functions.Notify('-'..Config.nailXPloss..'XP to Scrapping', "error", 3500)
+                    QBCore.Functions.Notify('-'..Config.nailXPloss..'XP to Scraping', "error", 3500)
                 elseif Config.NotifyType == "okok" then
-                    exports['okokNotify']:Alert("SKILLS", '-'..Config.nailXPloss..'XP to Scrapping', 3500, "error")
+                    exports['okokNotify']:Alert("SKILLS", '-'..Config.nailXPloss..'XP to Scraping', 3500, "error")
                 end   
             end   
             FailedAttemps = 0
@@ -814,7 +786,6 @@ function CleanNailsMinigame(source)
 end
 
 function CleanNailsProcess()
-    craftcheck = true
     local nailtail = math.random(Config.nailtimelow*1000, Config.nailtimehigh*1000)
     QBCore.Functions.Progressbar("grind_coke", "Cleaning off corrosion and restoring metal...", nailtail, false, true, {
         disableMovement = true,
@@ -833,7 +804,6 @@ function CleanNailsProcess()
         elseif Config.NotifyType == "okok" then
             exports['okokNotify']:Alert("TASK STOPPED", "Process Cancelled", 3500, "error")
         end 
-        craftcheck = false
     end)
 end
 
@@ -841,33 +811,27 @@ end
 --RADIO--
 ---------
 
-RegisterNetEvent('mz-scrap:client:BreakdownRadio', function()
-    if not craftcheck then 
-        if QBCore.Functions.HasItem("carradio") then
-            TriggerServerEvent("mz-scrap:server:ExtractRadio")
-        else
-            local requiredItems = {
-                [1] = {name = QBCore.Shared.Items["carradio"]["name"], image = QBCore.Shared.Items["carradio"]["image"]}, 
-            }  
-            if Config.NotifyType == 'qb' then
-                QBCore.Functions.Notify('You need a car radio to extract its components', "error", 3500)
-            elseif Config.NotifyType == "okok" then
-                exports['okokNotify']:Alert("CAR RADIO NEEDED", "You need a car radio to extract its components", 3500, "error")
-            end 
-            TriggerEvent('inventory:client:requiredItems', requiredItems, true)
-            Wait(3000)
-            TriggerEvent('inventory:client:requiredItems', requiredItems, false)
-        end
-    else 
+RegisterNetEvent('mz-scrap:client:BreakdownRadio')
+AddEventHandler('mz-scrap:client:BreakdownRadio', function()
+    if QBCore.Functions.HasItem("carradio") then
+        TriggerServerEvent("mz-scrap:server:ExtractRadio")
+    else
+        local requiredItems = {
+            [1] = {name = QBCore.Shared.Items["carradio"]["name"], image = QBCore.Shared.Items["carradio"]["image"]}, 
+        }  
         if Config.NotifyType == 'qb' then
-            QBCore.Functions.Notify('You are already doing something...', "error", 3500)
+            QBCore.Functions.Notify('You need a car radio to extract its components', "error", 3500)
         elseif Config.NotifyType == "okok" then
-            exports['okokNotify']:Alert("SLOW DOWN", 'You are already doing something...', 3500, "error")
+            exports['okokNotify']:Alert("CAR RADIO NEEDED", "You need a car radio to extract its components", 3500, "error")
         end 
-    end 
+        TriggerEvent('inventory:client:requiredItems', requiredItems, true)
+        Wait(3000)
+        TriggerEvent('inventory:client:requiredItems', requiredItems, false)
+    end
 end)
 
-RegisterNetEvent('mz-scrap:client:BreakRadioMinigame', function(source)
+RegisterNetEvent('mz-scrap:client:BreakRadioMinigame')
+AddEventHandler('mz-scrap:client:BreakRadioMinigame', function(source)
     TriggerEvent('animations:client:EmoteCommandStart', {"mechanic"})
     BreakRadioMinigame(source)
 end)
@@ -892,7 +856,7 @@ function BreakRadioMinigame(source)
                 exports['okokNotify']:Alert("ELECTRONIC BOARDS", "You extract some electronic boards from the radio", 3500, "success")
             end
             Wait(500)
-            if Config.mzskills then 
+            if Config.mzskills == 'yes' then 
                 local BetterXP = math.random(Config.radioXPlow, Config.radioXPhigh)
                 local multiplier = math.random(1, 4)
                 if multiplier > 3 then
@@ -920,13 +884,13 @@ function BreakRadioMinigame(source)
             exports['okokNotify']:Alert("HAND SLIPPED", "You are not going to be able to salvage these electronic boards...", 3500, "error")
         end
         Wait(500)
-        if Config.mzskills then 
+        if Config.mzskills == 'yes' then 
             local deteriorate = -Config.radioXPloss
             exports["mz-skills"]:UpdateSkill("Scraping", deteriorate)
             if Config.NotifyType == 'qb' then
-                QBCore.Functions.Notify('-'..Config.radioXPloss..'XP to Scrapping', "error", 3500)
+                QBCore.Functions.Notify('-'..Config.radioXPloss..'XP to Scraping', "error", 3500)
             elseif Config.NotifyType == "okok" then
-                exports['okokNotify']:Alert("SKILLS", '-'..Config.radioXPloss..'XP to Scrapping', 3500, "error")
+                exports['okokNotify']:Alert("SKILLS", '-'..Config.radioXPloss..'XP to Scraping', 3500, "error")
             end   
         end
         FailedAttemps = 0
@@ -938,7 +902,6 @@ function BreakRadioMinigame(source)
 end
 
 function BreakRadioProcess()
-    craftcheck = true
     local radiotime = math.random(Config.radiotimelow*1000, Config.radiotimehigh*1000)
     QBCore.Functions.Progressbar("grind_coke", "Stripping chasis and extracting components...", radiotime, false, true, {
         disableMovement = true,
@@ -957,7 +920,6 @@ function BreakRadioProcess()
         elseif Config.NotifyType == "okok" then
             exports['okokNotify']:Alert("TASK STOPPED", "Process Cancelled", 3500, "error")
         end 
-        craftcheck = false
     end)
 end
 
@@ -965,33 +927,27 @@ end
 --CAR JACKS--
 -------------
 
-RegisterNetEvent('mz-scrap:client:BreakdownCarjack', function()
-    if not craftcheck then 
-        if QBCore.Functions.HasItem("carjack") then
-            TriggerServerEvent("mz-scrap:server:BreakdownCarjack")
-        else
-            local requiredItems = {
-                [1] = {name = QBCore.Shared.Items["carjack"]["name"], image = QBCore.Shared.Items["carjack"]["image"]}, 
-            }  
-            if Config.NotifyType == 'qb' then
-                QBCore.Functions.Notify('You need a car jack to extract materials from it...', "error", 3500)
-            elseif Config.NotifyType == "okok" then
-                exports['okokNotify']:Alert("CAR JACK NEEDED", "You need a car jack to extract materials from it...", 3500, "error")
-            end 
-            TriggerEvent('inventory:client:requiredItems', requiredItems, true)
-            Wait(3000)
-            TriggerEvent('inventory:client:requiredItems', requiredItems, false)
-        end
-    else 
+RegisterNetEvent('mz-scrap:client:BreakdownCarjack')
+AddEventHandler('mz-scrap:client:BreakdownCarjack', function()
+    if QBCore.Functions.HasItem("carjack") then
+        TriggerServerEvent("mz-scrap:server:BreakdownCarjack")
+    else
+        local requiredItems = {
+            [1] = {name = QBCore.Shared.Items["carjack"]["name"], image = QBCore.Shared.Items["carjack"]["image"]}, 
+        }  
         if Config.NotifyType == 'qb' then
-            QBCore.Functions.Notify('You are already doing something...', "error", 3500)
+            QBCore.Functions.Notify('You need a car jack to extract materials from it...', "error", 3500)
         elseif Config.NotifyType == "okok" then
-            exports['okokNotify']:Alert("SLOW DOWN", 'You are already doing something...', 3500, "error")
+            exports['okokNotify']:Alert("CAR JACK NEEDED", "You need a car jack to extract materials from it...", 3500, "error")
         end 
-    end 
+        TriggerEvent('inventory:client:requiredItems', requiredItems, true)
+        Wait(3000)
+        TriggerEvent('inventory:client:requiredItems', requiredItems, false)
+    end
 end)
 
-RegisterNetEvent('mz-scrap:client:BreakCarjackMinigame', function(source)
+RegisterNetEvent('mz-scrap:client:BreakCarjackMinigame')
+AddEventHandler('mz-scrap:client:BreakCarjackMinigame', function(source)
     TriggerEvent('animations:client:EmoteCommandStart', {"mechanic"})
     BreakCarjackMinigame(source)
 end)
@@ -1016,7 +972,7 @@ function BreakCarjackMinigame(source)
                 exports['okokNotify']:Alert("METAL EXTRACTED", "You extract some metal from the car jacks", 3500, "success")
             end
             Wait(500)
-            if Config.mzskills then 
+            if Config.mzskills == 'yes' then 
                 local BetterXP = math.random(Config.jacksXPlow, Config.jacksXPhigh)
                 local multiplier = math.random(1, 4)
                 if multiplier > 3 then
@@ -1044,13 +1000,13 @@ function BreakCarjackMinigame(source)
             exports['okokNotify']:Alert("METAL RUINED", "The jack breaks into useless pieces...", 3500, "error")
         end 
         Wait(500)
-        if Config.mzskills then 
+        if Config.mzskills == 'yes' then 
             local deteriorate = -Config.jacksXPloss
             exports["mz-skills"]:UpdateSkill("Scraping", deteriorate)
             if Config.NotifyType == 'qb' then
-                QBCore.Functions.Notify('-'..Config.jacksXPloss..'XP to Scrapping', "error", 3500)
+                QBCore.Functions.Notify('-'..Config.jacksXPloss..'XP to Scraping', "error", 3500)
             elseif Config.NotifyType == "okok" then
-                exports['okokNotify']:Alert("SKILLS", '-'..Config.jacksXPloss..'XP to Scrapping', 3500, "error")
+                exports['okokNotify']:Alert("SKILLS", '-'..Config.jacksXPloss..'XP to Scraping', 3500, "error")
             end   
         end  
         FailedAttemps = 0
@@ -1062,7 +1018,6 @@ function BreakCarjackMinigame(source)
 end
 
 function BreakCarjackProcess()
-    craftcheck = true
     local jackstime = math.random(Config.jackstimelow*1000, Config.jackstimehigh*1000)
     QBCore.Functions.Progressbar("grind_coke", "Disassembling car jack components...", jackstime, false, true, {
         disableMovement = true,
@@ -1083,7 +1038,6 @@ function BreakCarjackProcess()
         elseif Config.NotifyType == "okok" then
             exports['okokNotify']:Alert("TASK STOPPED", "Process Cancelled", 3500, "error")
         end 
-        craftcheck = false 
     end)
 end
 
@@ -1091,33 +1045,27 @@ end
 --CAR DOORS--
 -------------
 
-RegisterNetEvent('mz-scrap:client:BreakdownCardoor', function()
-    if not craftcheck then 
-        if QBCore.Functions.HasItem("cardoor") then
-            TriggerServerEvent("mz-scrap:server:BreakdownCardoor")
-        else
-            local requiredItems = {
-                [1] = {name = QBCore.Shared.Items["cardoor"]["name"], image = QBCore.Shared.Items["cardoor"]["image"]}, 
-            }  
-            if Config.NotifyType == 'qb' then
-                QBCore.Functions.Notify('You need some car doors in order to extract materials from them...', "error", 3500)
-            elseif Config.NotifyType == "okok" then
-                exports['okokNotify']:Alert("CAR DOOR NEEDED", "You need some car doors in order to extract materials from them...", 3500, "error")
-            end 
-            TriggerEvent('inventory:client:requiredItems', requiredItems, true)
-            Wait(3000)
-            TriggerEvent('inventory:client:requiredItems', requiredItems, false)
-        end
-    else 
+RegisterNetEvent('mz-scrap:client:BreakdownCardoor')
+AddEventHandler('mz-scrap:client:BreakdownCardoor', function()
+    if QBCore.Functions.HasItem("cardoor") then
+        TriggerServerEvent("mz-scrap:server:BreakdownCardoor")
+    else
+        local requiredItems = {
+            [1] = {name = QBCore.Shared.Items["cardoor"]["name"], image = QBCore.Shared.Items["cardoor"]["image"]}, 
+        }  
         if Config.NotifyType == 'qb' then
-            QBCore.Functions.Notify('You are already doing something...', "error", 3500)
+            QBCore.Functions.Notify('You need some car doors in order to extract materials from them...', "error", 3500)
         elseif Config.NotifyType == "okok" then
-            exports['okokNotify']:Alert("SLOW DOWN", 'You are already doing something...', 3500, "error")
+            exports['okokNotify']:Alert("CAR DOOR NEEDED", "You need some car doors in order to extract materials from them...", 3500, "error")
         end 
-    end 
+        TriggerEvent('inventory:client:requiredItems', requiredItems, true)
+        Wait(3000)
+        TriggerEvent('inventory:client:requiredItems', requiredItems, false)
+    end
 end)
 
-RegisterNetEvent('mz-scrap:client:BreakCardoorMinigame', function(source)
+RegisterNetEvent('mz-scrap:client:BreakCardoorMinigame')
+AddEventHandler('mz-scrap:client:BreakCardoorMinigame', function(source)
     TriggerEvent('animations:client:EmoteCommandStart', {"mechanic"})
     BreakCardoorMinigame(source)
 end)
@@ -1142,7 +1090,7 @@ function BreakCardoorMinigame(source)
                 exports['okokNotify']:Alert("MATERIAL EXTRACTED", "You extract some glass and metal from the doors", 3500, "success")
             end
             Wait(500)
-            if Config.mzskills then 
+            if Config.mzskills == 'yes' then 
                 local BetterXP = math.random(Config.doorsXPlow, Config.doorsXPhigh)
                 local multiplier = math.random(1, 4)
                 if multiplier > 3 then
@@ -1169,13 +1117,13 @@ function BreakCardoorMinigame(source)
         elseif Config.NotifyType == "okok" then
             exports['okokNotify']:Alert("CAR DOORS RUINED", "The car door breaks into useless pieces...", 3500, "error")
         end
-        if Config.mzskills then 
+        if Config.mzskills == 'yes' then 
             local deteriorate = -Config.doorsXPloss
             exports["mz-skills"]:UpdateSkill("Scraping", deteriorate)
             if Config.NotifyType == 'qb' then
-                QBCore.Functions.Notify('-'..Config.doorsXPloss..'XP to Scrapping', "error", 3500)
+                QBCore.Functions.Notify('-'..Config.doorsXPloss..'XP to Scraping', "error", 3500)
             elseif Config.NotifyType == "okok" then
-                exports['okokNotify']:Alert("SKILLS", '-'..Config.doorsXPloss..'XP to Scrapping', 3500, "error")
+                exports['okokNotify']:Alert("SKILLS", '-'..Config.doorsXPloss..'XP to Scraping', 3500, "error")
             end   
         end  
         FailedAttemps = 0
@@ -1187,7 +1135,6 @@ function BreakCardoorMinigame(source)
 end
 
 function BreakCardoorProcess()
-    craftcheck = true
     local doorstime = math.random(Config.doorstimelow * 1000, Config.doorstimehigh * 1000)
     QBCore.Functions.Progressbar("grind_coke", "Dismantling car door components...", doorstime, false, true, {
         disableMovement = true,
@@ -1202,7 +1149,7 @@ function BreakCardoorProcess()
         ClearPedTasks(PlayerPedId())
         craftcheck = false
     end, function() -- Cancel
-        craftcheck = false
+        openingDoor = false
         ClearPedTasks(PlayerPedId())
         if Config.NotifyType == 'qb' then
             QBCore.Functions.Notify('Process Cancelled', "error", 3500)
@@ -1216,33 +1163,27 @@ end
 --CAR HOOD--
 ------------
 
-RegisterNetEvent('mz-scrap:client:BreakdownCarhood', function()
-    if not craftcheck then 
-        if QBCore.Functions.HasItem("carhood") then
-            TriggerServerEvent("mz-scrap:server:BreakdownCarhood")
-        else
-            local requiredItems = {
-                [1] = {name = QBCore.Shared.Items["carhood"]["name"], image = QBCore.Shared.Items["carhood"]["image"]}, 
-            }  
-            if Config.NotifyType == 'qb' then
-                QBCore.Functions.Notify('You need some car hoods in order to work on them...', "error", 3500)
-            elseif Config.NotifyType == "okok" then
-                exports['okokNotify']:Alert("CAR HOODS NEEDED", "You need some car hoods in order to work on them...", 3500, "error")
-            end 
-            TriggerEvent('inventory:client:requiredItems', requiredItems, true)
-            Wait(3000)
-            TriggerEvent('inventory:client:requiredItems', requiredItems, false)
-        end
-    else 
+RegisterNetEvent('mz-scrap:client:BreakdownCarhood')
+AddEventHandler('mz-scrap:client:BreakdownCarhood', function()
+    if QBCore.Functions.HasItem("carhood") then
+        TriggerServerEvent("mz-scrap:server:BreakdownCarhood")
+    else
+        local requiredItems = {
+            [1] = {name = QBCore.Shared.Items["carhood"]["name"], image = QBCore.Shared.Items["carhood"]["image"]}, 
+        }  
         if Config.NotifyType == 'qb' then
-            QBCore.Functions.Notify('You are already doing something...', "error", 3500)
+            QBCore.Functions.Notify('You need some car hoods in order to work on them...', "error", 3500)
         elseif Config.NotifyType == "okok" then
-            exports['okokNotify']:Alert("SLOW DOWN", 'You are already doing something...', 3500, "error")
+            exports['okokNotify']:Alert("CAR HOODS NEEDED", "You need some car hoods in order to work on them...", 3500, "error")
         end 
-    end 
+        TriggerEvent('inventory:client:requiredItems', requiredItems, true)
+        Wait(3000)
+        TriggerEvent('inventory:client:requiredItems', requiredItems, false)
+    end
 end)
 
-RegisterNetEvent('mz-scrap:client:BreakCarhoodMinigame', function(source)
+RegisterNetEvent('mz-scrap:client:BreakCarhoodMinigame')
+AddEventHandler('mz-scrap:client:BreakCarhoodMinigame', function(source)
     TriggerEvent('animations:client:EmoteCommandStart', {"mechanic"})
     BreakCarhoodMinigame(source)
 end)
@@ -1267,7 +1208,7 @@ function BreakCarhoodMinigame(source)
                 exports['okokNotify']:Alert("MATERIAL EXTRACTED", "You extract some iron and metal scrap from the hoods!", 3500, "success")
             end
             Wait(500)
-            if Config.mzskills then 
+            if Config.mzskills == 'yes' then 
                 local BetterXP = math.random(Config.hoodsXPlow, Config.hoodsXPhigh)
                 local multiplier = math.random(1, 4)
                 if multiplier > 3 then
@@ -1294,13 +1235,13 @@ function BreakCarhoodMinigame(source)
         elseif Config.NotifyType == "okok" then
             exports['okokNotify']:Alert("CAR HOODS RUINED", "The car hoods snap across the mid panel. Ruined...", 3500, "error")
         end
-        if Config.mzskills then 
+        if Config.mzskills == 'yes' then 
             local deteriorate = -Config.hoodsXPloss
             exports["mz-skills"]:UpdateSkill("Scraping", deteriorate)
             if Config.NotifyType == 'qb' then
-                QBCore.Functions.Notify('-'..Config.hoodsXPloss..'XP to Scrapping', "error", 3500)
+                QBCore.Functions.Notify('-'..Config.hoodsXPloss..'XP to Scraping', "error", 3500)
             elseif Config.NotifyType == "okok" then
-                exports['okokNotify']:Alert("SKILLS", '-'..Config.hoodsXPloss..'XP to Scrapping', 3500, "error")
+                exports['okokNotify']:Alert("SKILLS", '-'..Config.hoodsXPloss..'XP to Scraping', 3500, "error")
             end   
         end
         FailedAttemps = 0
@@ -1312,7 +1253,6 @@ function BreakCarhoodMinigame(source)
 end
 
 function BreakCarhoodProcess()
-    craftcheck = true
     local hoodstime = math.random(Config.hoodstimelow*1000, Config.hoodstimehigh*1000)
     QBCore.Functions.Progressbar("grind_coke", "Cutting apart hood components...", hoodstime, false, true, {
         disableMovement = true,
@@ -1327,7 +1267,7 @@ function BreakCarhoodProcess()
         ClearPedTasks(PlayerPedId())
         craftcheck = false
     end, function() -- Cancel
-        craftcheck = false
+        openingDoor = false
         ClearPedTasks(PlayerPedId())
         if Config.NotifyType == 'qb' then
             QBCore.Functions.Notify('Process Cancelled', "error", 3500)
@@ -1341,27 +1281,14 @@ end
 --CAR ENGINE--
 --------------
 
-RegisterNetEvent('mz-scrap:client:BreakdownCarengine', function()
-    if not craftcheck then 
-        if QBCore.Functions.HasItem("carengine") then
-            if QBCore.Functions.HasItem("blowtorch") then
-                TriggerServerEvent("mz-scrap:server:BreakdownCarengine")
-            else
-                local requiredItems = {
-                    [1] = {name = QBCore.Shared.Items["blowtorch"]["name"], image = QBCore.Shared.Items["blowtorch"]["image"]},  
-                }  
-                if Config.NotifyType == 'qb' then
-                    QBCore.Functions.Notify('You need an engine block and a blowtorch to get to work', "error", 3500)
-                elseif Config.NotifyType == "okok" then
-                    exports['okokNotify']:Alert("ENGINE + BLOWTORCH", "You need an engine block and a blowtorch to get to work", 3500, "error")
-                end 
-                TriggerEvent('inventory:client:requiredItems', requiredItems, true)
-                Wait(3000)
-                TriggerEvent('inventory:client:requiredItems', requiredItems, false)
-            end
+RegisterNetEvent('mz-scrap:client:BreakdownCarengine')
+AddEventHandler('mz-scrap:client:BreakdownCarengine', function()
+    if QBCore.Functions.HasItem("carengine") then
+        if QBCore.Functions.HasItem("blowtorch") then
+            TriggerServerEvent("mz-scrap:server:BreakdownCarengine")
         else
             local requiredItems = {
-                [1] = {name = QBCore.Shared.Items["carengine"]["name"], image = QBCore.Shared.Items["carengine"]["image"]},
+                [1] = {name = QBCore.Shared.Items["blowtorch"]["name"], image = QBCore.Shared.Items["blowtorch"]["image"]},  
             }  
             if Config.NotifyType == 'qb' then
                 QBCore.Functions.Notify('You need an engine block and a blowtorch to get to work', "error", 3500)
@@ -1372,16 +1299,23 @@ RegisterNetEvent('mz-scrap:client:BreakdownCarengine', function()
             Wait(3000)
             TriggerEvent('inventory:client:requiredItems', requiredItems, false)
         end
-    else 
+    else
+        local requiredItems = {
+            [1] = {name = QBCore.Shared.Items["carengine"]["name"], image = QBCore.Shared.Items["carengine"]["image"]},
+        }  
         if Config.NotifyType == 'qb' then
-            QBCore.Functions.Notify('You are already doing something...', "error", 3500)
+            QBCore.Functions.Notify('You need an engine block and a blowtorch to get to work', "error", 3500)
         elseif Config.NotifyType == "okok" then
-            exports['okokNotify']:Alert("SLOW DOWN", 'You are already doing something...', 3500, "error")
+            exports['okokNotify']:Alert("ENGINE + BLOWTORCH", "You need an engine block and a blowtorch to get to work", 3500, "error")
         end 
-    end 
+        TriggerEvent('inventory:client:requiredItems', requiredItems, true)
+        Wait(3000)
+        TriggerEvent('inventory:client:requiredItems', requiredItems, false)
+    end
 end)
 
-RegisterNetEvent('mz-scrap:client:BreakCarengineMinigame', function(source)
+RegisterNetEvent('mz-scrap:client:BreakCarengineMinigame')
+AddEventHandler('mz-scrap:client:BreakCarengineMinigame', function(source)
     TriggerEvent('animations:client:EmoteCommandStart', {"mechanic"})
     BreakCarengineMinigame(source)
 end)
@@ -1405,7 +1339,7 @@ function BreakCarengineMinigame(source)
             elseif Config.NotifyType == "okok" then
                 exports['okokNotify']:Alert("MATERIAL EXTRACTED", "You extract some useful metal from the old engine!", 3500, "success")
             end
-            if Config.mzskills then 
+            if Config.mzskills == 'yes' then 
                 local BetterXP = math.random(Config.engineXPlow, Config.engineXPhigh)
                 local multiplier = math.random(1, 4)
                 if multiplier > 3 then
@@ -1432,13 +1366,13 @@ function BreakCarengineMinigame(source)
         elseif Config.NotifyType == "okok" then
             exports['okokNotify']:Alert("CAR ENGINE RUINED", "The car engine leaks black fluid... Ruined...", 3500, "error")
         end
-        if Config.mzskills then 
+        if Config.mzskills == 'yes' then 
             local deteriorate = -Config.engineXPloss
             exports["mz-skills"]:UpdateSkill("Scraping", deteriorate)
             if Config.NotifyType == 'qb' then
-                QBCore.Functions.Notify('-'..Config.engineXPloss..'XP to Scrapping', "error", 3500)
+                QBCore.Functions.Notify('-'..Config.engineXPloss..'XP to Scraping', "error", 3500)
             elseif Config.NotifyType == "okok" then
-                exports['okokNotify']:Alert("SKILLS", '-'..Config.engineXPloss..'XP to Scrapping', 3500, "error")
+                exports['okokNotify']:Alert("SKILLS", '-'..Config.engineXPloss..'XP to Scraping', 3500, "error")
             end   
         end
         FailedAttemps = 0
@@ -1450,7 +1384,6 @@ function BreakCarengineMinigame(source)
 end
 
 function BreakCarengineProcess()
-    craftcheck = true
     local enginetime = math.random(Config.enginetimelow*1000,Config.enginetimehigh*1000)
     QBCore.Functions.Progressbar("grind_coke", "Separating engine components...", enginetime, false, true, {
         disableMovement = true,
@@ -1469,7 +1402,7 @@ function BreakCarengineProcess()
         ClearPedTasks(PlayerPedId())
         craftcheck = false
     end, function() -- Cancel
-        craftcheck = false
+        openingDoor = false
         ClearPedTasks(PlayerPedId())
         if Config.NotifyType == 'qb' then
             QBCore.Functions.Notify('Process Cancelled', "error", 3500)
@@ -1490,7 +1423,6 @@ CreateThread(function()
         debugPoly = false,
         minZ = 29.02,
         maxZ = 33.02,
-        drawDistance = 10.0
         }, {
             options = { 
             {
@@ -1603,7 +1535,6 @@ CreateThread(function()
         debugPoly = false,
         minZ = 34.35,
         maxZ = 38.35,
-        drawDistance = 10.0
         }, {
             options = { 
             {

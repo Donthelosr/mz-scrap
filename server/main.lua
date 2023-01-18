@@ -46,8 +46,8 @@ QBCore.Functions.CreateCallback('mz-scrap:server:ScrapReward', function(source, 
             Player.Functions.AddItem(QBCore.Shared.Items["carjack"].name, 1)
             TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items["carjack"], 'add')    
         elseif luck == 100 then
-            Player.Functions.AddItem(QBCore.Shared.Items["pistol1"].name, 1)
-            TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items["pistol1"], 'add')      
+            Player.Functions.AddItem(QBCore.Shared.Items["copperwire"].name, 1)
+            TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items["copperwire"], 'add')      
         end
         Wait(100)
         if Config.NotifyType == 'qb' then
@@ -104,8 +104,8 @@ QBCore.Functions.CreateCallback('mz-scrap:server:ScrapReward2', function(source,
             Player.Functions.AddItem(QBCore.Shared.Items["sparkplugs"].name, 1)
             TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items["sparkplugs"], 'add')       
         elseif luck == 100 then
-            Player.Functions.AddItem(QBCore.Shared.Items["pistol2"].name, 1)
-            TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items["pistol2"], 'add')      
+            Player.Functions.AddItem(QBCore.Shared.Items["copperwire"].name, 5)
+            TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items["copperwire"], 'add')      
         end
         if Config.NotifyType == 'qb' then
             TriggerClientEvent('QBCore:Notify', src, "You extracted some salvaged scrap!", 'success')
@@ -159,11 +159,11 @@ QBCore.Functions.CreateCallback('mz-scrap:server:ScrapReward3', function(source,
             Player.Functions.AddItem(QBCore.Shared.Items["carengine"].name, 1)
             TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items["carengine"], 'add')
         elseif luck == 99 then
-            Player.Functions.AddItem(QBCore.Shared.Items["pistol3"].name, 1)
-            TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items["pistol3"], 'add')           
-        elseif luck == 100 then
-            Player.Functions.AddItem(QBCore.Shared.Items["pistol4"].name, 1)
-            TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items["pistol4"], 'add')      
+            Player.Functions.AddItem(QBCore.Shared.Items["copperwire"].name, 1)
+            TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items["copperwire"], 'add')           
+        -- elseif luck == 100 then
+        --     Player.Functions.AddItem(QBCore.Shared.Items["pistol4"].name, 1)
+        --     TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items["pistol4"], 'add')      
         end
         if Config.NotifyType == 'qb' then
             TriggerClientEvent('QBCore:Notify', src, "You extracted some salvaged scrap!", 'success')
@@ -179,7 +179,8 @@ QBCore.Functions.CreateCallback('mz-scrap:server:ScrapReward3', function(source,
     end
 end)
 
-RegisterServerEvent('mz-scrap:server:ScrapReward', function()
+RegisterServerEvent('mz-scrap:server:ScrapReward')
+AddEventHandler('mz-scrap:server:ScrapReward', function()
     QBCore.Functions.BanInjection(source, 'mz-scrap:server:ScrapReward')
 end)
 
@@ -187,18 +188,20 @@ end)
 --PARTS BREAKING--
 ------------------
 
-RegisterServerEvent('mz-scrap:server:screwdriverbreak', function()
+RegisterServerEvent('mz-scrap:server:screwdriverbreak')
+AddEventHandler('mz-scrap:server:screwdriverbreak', function()
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
-    Player.Functions.RemoveItem(Config.ScrewdriverRequiredItem, 1)
-    TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items[Config.ScrewdriverRequiredItem], "remove", 1)
+    Player.Functions.RemoveItem("screwdriver", 1)
+    TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['screwdriver'], "remove", 1)
 end)
 
-RegisterServerEvent('mz-scrap:server:blowtorchbreak', function()
+RegisterServerEvent('mz-scrap:server:blowtorchbreak')
+AddEventHandler('mz-scrap:server:blowtorchbreak', function()
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
-    Player.Functions.RemoveItem(Config.BlowtorchRequiredItem, 1)
-    TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items[Config.BlowtorchRequiredItem], "remove", 1)
+    Player.Functions.RemoveItem("blowtorch", 1)
+    TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['blowtorch'], "remove", 1)
 end)
 
 -----------------------
@@ -209,30 +212,32 @@ end)
 --TIRES--
 ---------
 
-RegisterServerEvent('mz-scrap:server:BreakdownTires', function()
+RegisterServerEvent('mz-scrap:server:BreakdownTires')
+AddEventHandler('mz-scrap:server:BreakdownTires', function()
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     local oldtire = Player.Functions.GetItemByName('oldtire')
     if Player.PlayerData.items ~= nil then 
         if oldtire ~= nil then 
-            if oldtire.amount >= Config.tiresneeded then 
-                Player.Functions.RemoveItem("oldtire", Config.tiresneeded)
-                TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['oldtire'], "remove", Config.tiresneeded)
+            if oldtire.amount >= 1 then 
+                Player.Functions.RemoveItem("oldtire", 1)
+                TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['oldtire'], "remove", 1)
                 TriggerClientEvent("mz-scrap:client:BreakdownTiresMinigame", src)
             else
                 if Config.NotifyType == 'qb' then
                     TriggerClientEvent('QBCore:Notify', src, "You do not have enough worn tires to process (Need "..Config.tiresneeded..")", 'error')
                 elseif Config.NotifyType == "okok" then
-                    TriggerClientEvent('okokNotify:Alert', source, "NO TIRES?", "You do not have enough worn tires to process (Need "..Config.tiresneeded..")", 3500, 'error')
+                    TriggerClientEvent('okokNotify:Alert', source, "NO TIRES?", "You do not have enough worn tires to process", 3500, 'error')
                 end
             end
         end
     end
 end)
 
-RegisterServerEvent('mz-scrap:server:GetRubber', function()
+RegisterServerEvent('mz-scrap:server:GetRubber')
+AddEventHandler('mz-scrap:server:GetRubber', function()
     local Player = QBCore.Functions.GetPlayer(source)
-    local amount = math.random(Config.Rubberoutputlow, Config.Rubberoutputhigh)
+    local amount = math.random(1,6)
     Player.Functions.AddItem("rubber", amount)
     TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['rubber'], "add", amount)
 end)
@@ -241,35 +246,37 @@ end)
 --NAILS--
 ---------
 
-RegisterServerEvent('mz-scrap:server:CleanNails', function()
+RegisterServerEvent('mz-scrap:server:CleanNails')
+AddEventHandler('mz-scrap:server:CleanNails', function()
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     local rustynails = Player.Functions.GetItemByName('rustynails')
     if Player.PlayerData.items ~= nil then 
         if rustynails ~= nil then 
-            if rustynails.amount >= Config.nailsneeded then 
-                Player.Functions.RemoveItem("rustynails", Config.nailsneeded)
-                TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['rustynails'], "remove", Config.nailsneeded)
+            if rustynails.amount >= 1 then 
+                Player.Functions.RemoveItem("rustynails", 1)
+                TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['rustynails'], "remove", 1)
                 TriggerClientEvent("mz-scrap:client:CleanNailsMinigame", src)
             else
             if Config.NotifyType == 'qb' then
                 TriggerClientEvent('QBCore:Notify', src, "You need "..Config.nailsneeded.." Rusty Nails and 1x WD-40.", 'error')
             elseif Config.NotifyType == "okok" then
-                TriggerClientEvent('okokNotify:Alert', source, "NEED MATERIALS", "You need "..Config.nailsneeded.." Rusty Nails and 1x WD-40.", 3500, 'error')
+                TriggerClientEvent('okokNotify:Alert', source, "NEED MATERIALS", "You need Rusty Nails and WD-40.", 3500, 'error')
             end
             end
         end
     end
 end)
 
-RegisterServerEvent('mz-scrap:server:GetMetalscrap', function()
+RegisterServerEvent('mz-scrap:server:GetMetalscrap')
+AddEventHandler('mz-scrap:server:GetMetalscrap', function()
     local Player = QBCore.Functions.GetPlayer(source)
-    local amount = math.random(Config.metaloutputlow, Config.metaloutputhigh)
+    local amount = math.random(1,2)
     local chance = math.random(1, 100)
     Player.Functions.AddItem("metalscrap", amount)
     TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['metalscrap'], "add", amount)
     Wait(3000)
-    if chance < 20 then
+    if chance < 10 then
         Player.Functions.RemoveItem("wd40", 1)
         TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['wd40'], "remove", 1)
     end
@@ -279,30 +286,32 @@ end)
 --RADIO--
 ---------
 
-RegisterServerEvent('mz-scrap:server:ExtractRadio', function()
+RegisterServerEvent('mz-scrap:server:ExtractRadio')
+AddEventHandler('mz-scrap:server:ExtractRadio', function()
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     local carradio = Player.Functions.GetItemByName('carradio')
     if Player.PlayerData.items ~= nil then 
         if carradio ~= nil then 
-            if carradio.amount >= Config.radiosneeded then 
-                Player.Functions.RemoveItem("carradio", Config.radiosneeded)
-                TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['carradio'], "remove", Config.radiosneeded)
+            if carradio.amount >= 1 then 
+                Player.Functions.RemoveItem("carradio", 1)
+                TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['carradio'], "remove", 1)
                 TriggerClientEvent("mz-scrap:client:BreakRadioMinigame", src)
             else
                 if Config.NotifyType == 'qb' then
                     TriggerClientEvent('QBCore:Notify', src, "You need "..Config.radiosneeded.." car radios to start work", 'error')
                 elseif Config.NotifyType == "okok" then
-                    TriggerClientEvent('okokNotify:Alert', source, "NEED RADIOS", "You need "..Config.radiosneeded.." car radios to start work", 3500, 'error')
+                    TriggerClientEvent('okokNotify:Alert', source, "NEED RADIOS", "You need car radios to start work", 3500, 'error')
                 end
             end
         end
     end
 end)
 
-RegisterServerEvent('mz-scrap:server:GetElectricscrap', function()
+RegisterServerEvent('mz-scrap:server:GetElectricscrap')
+AddEventHandler('mz-scrap:server:GetElectricscrap', function()
     local Player = QBCore.Functions.GetPlayer(source)
-    local amount = math.random(Config.elecoutputlow, Config.elecoutputhigh)
+    local amount = math.random(1,3)
     Player.Functions.AddItem("electronicscrap", amount)
     TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['electronicscrap'], "add", amount)
 end)
@@ -311,37 +320,40 @@ end)
 --CAR JACK--
 ------------
 
-RegisterServerEvent('mz-scrap:server:BreakdownCarjack', function()
+RegisterServerEvent('mz-scrap:server:BreakdownCarjack')
+AddEventHandler('mz-scrap:server:BreakdownCarjack', function()
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     local carjack = Player.Functions.GetItemByName('carjack')
     if Player.PlayerData.items ~= nil then 
         if carjack ~= nil then 
-            if carjack.amount >= Config.jacksneeded then 
-                Player.Functions.RemoveItem("carjack", Config.jacksneeded)
-                TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['carjack'], "remove", Config.jacksneeded)
+            if carjack.amount >= 1 then 
+                Player.Functions.RemoveItem("carjack", 1)
+                TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['carjack'], "remove", 1)
                 TriggerClientEvent("mz-scrap:client:BreakCarjackMinigame", src)
             else
                 if Config.NotifyType == 'qb' then
                     TriggerClientEvent('QBCore:Notify', src, "You need "..Config.jacksneeded.." car jacks to start work", 'error')
                 elseif Config.NotifyType == "okok" then
-                    TriggerClientEvent('okokNotify:Alert', source, "NEED JACKS", "You need "..Config.jacksneeded.." car jacks to start work", 3500, 'error')
+                    TriggerClientEvent('okokNotify:Alert', source, "NEED JACKS", "You need car jacks to start work", 3500, 'error')
                 end
             end
         end
     end
 end)
 
-RegisterServerEvent('mz-scrap:server:GetMetals', function()
+RegisterServerEvent('mz-scrap:server:GetMetals')
+AddEventHandler('mz-scrap:server:GetMetals', function()
     local Player = QBCore.Functions.GetPlayer(source)
-    local amount = math.random(Config.jacksmetaloutputlow, Config.jacksmetaloutputhigh)
+    local amount = math.random(1,6)
     Player.Functions.AddItem("metalscrap", amount)
     TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['metalscrap'], "add", amount)
 end)
 
-RegisterServerEvent('mz-scrap:server:GetMetals2', function()
+RegisterServerEvent('mz-scrap:server:GetMetals2')
+AddEventHandler('mz-scrap:server:GetMetals2', function()
     local Player = QBCore.Functions.GetPlayer(source)
-    local amount = math.random(Config.jackssteeloutputlow, Config.jackssteeloutputlow)
+    local amount = math.random(1,6)
     Player.Functions.AddItem("steel", amount)
     TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['steel'], "add", amount)
 end)
@@ -350,37 +362,40 @@ end)
 --CAR DOOR--
 ------------
 
-RegisterServerEvent('mz-scrap:server:BreakdownCardoor', function()
+RegisterServerEvent('mz-scrap:server:BreakdownCardoor')
+AddEventHandler('mz-scrap:server:BreakdownCardoor', function()
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     local cardoor = Player.Functions.GetItemByName('cardoor')
     if Player.PlayerData.items ~= nil then 
         if cardoor ~= nil then 
-            if cardoor.amount >= Config.doorsneeded then 
-                Player.Functions.RemoveItem("cardoor", Config.doorsneeded)
-                TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['cardoor'], "remove", Config.doorsneeded)
+            if cardoor.amount >= 1 then 
+                Player.Functions.RemoveItem("cardoor", 1)
+                TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['cardoor'], "remove", 1)
                 TriggerClientEvent("mz-scrap:client:BreakCardoorMinigame", src)
             else
                 if Config.NotifyType == 'qb' then
                     TriggerClientEvent('QBCore:Notify', src, "You need "..Config.doorsneeded.." car doors to start work.", 'error')
                 elseif Config.NotifyType == "okok" then
-                    TriggerClientEvent('okokNotify:Alert', source, "NEED DOORS", "You need "..Config.doorsneeded.." car doors to start work.", 3500, 'error')
+                    TriggerClientEvent('okokNotify:Alert', source, "NEED DOORS", "You need car doors to start work.", 3500, 'error')
                 end    
             end
         end
     end
 end)
 
-RegisterServerEvent('mz-scrap:server:GetCardoormats', function()
+RegisterServerEvent('mz-scrap:server:GetCardoormats')
+AddEventHandler('mz-scrap:server:GetCardoormats', function()
     local Player = QBCore.Functions.GetPlayer(source)
-    local amount = math.random(Config.doorglasslow , Config.doorglasshigh)
+    local amount = math.random(1,6)
     Player.Functions.AddItem("glass", amount)
     TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['glass'], "add", amount)
 end)
 
-RegisterServerEvent('mz-scrap:server:GetCardoormats2', function()
+RegisterServerEvent('mz-scrap:server:GetCardoormats2')
+AddEventHandler('mz-scrap:server:GetCardoormats2', function()
     local Player = QBCore.Functions.GetPlayer(source)
-    local amount = math.random(Config.doorironlow, Config.doorironhigh)
+    local amount = math.random(1,5)
     Player.Functions.AddItem("iron", amount)
     TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['iron'], "add", amount)
 end)
@@ -389,37 +404,40 @@ end)
 --CAR HOOD--
 ------------
 
-RegisterServerEvent('mz-scrap:server:BreakdownCarhood', function()
+RegisterServerEvent('mz-scrap:server:BreakdownCarhood')
+AddEventHandler('mz-scrap:server:BreakdownCarhood', function()
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     local carhood = Player.Functions.GetItemByName('carhood')
     if Player.PlayerData.items ~= nil then 
         if carhood ~= nil then 
-            if carhood.amount >= Config.hoodneeded then 
-                Player.Functions.RemoveItem("carhood", Config.hoodneeded)
-                TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['carhood'], "remove", Config.hoodneeded)
+            if carhood.amount >= 1 then 
+                Player.Functions.RemoveItem("carhood", 1)
+                TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['carhood'], "remove", 1)
                 TriggerClientEvent("mz-scrap:client:BreakCarhoodMinigame", src)
             else
                 if Config.NotifyType == 'qb' then
                     TriggerClientEvent('QBCore:Notify', src, "You need "..Config.hoodneeded.." car hoods to start work.", 'error')
                 elseif Config.NotifyType == "okok" then
-                    TriggerClientEvent('okokNotify:Alert', source, "NEED HOODS", "You need "..Config.hoodneeded.." car hoods to start work.", 3500, 'error')
+                    TriggerClientEvent('okokNotify:Alert', source, "NEED HOODS", "You need car hoods to start work.", 3500, 'error')
                 end   
             end
         end
     end
 end)
 
-RegisterServerEvent('mz-scrap:server:GetCarhoodmats', function()
+RegisterServerEvent('mz-scrap:server:GetCarhoodmats')
+AddEventHandler('mz-scrap:server:GetCarhoodmats', function()
     local Player = QBCore.Functions.GetPlayer(source)
-    local amount = math.random(Config.hoodscraplow, Config.hoodscraphigh)
+    local amount = math.random(1,6)
     Player.Functions.AddItem("metalscrap", amount)
     TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['metalscrap'], "add", amount)
 end)
 
-RegisterServerEvent('mz-scrap:server:GetCarhoodmats2', function()
+RegisterServerEvent('mz-scrap:server:GetCarhoodmats2')
+AddEventHandler('mz-scrap:server:GetCarhoodmats2', function()
     local Player = QBCore.Functions.GetPlayer(source)
-    local amount2 = math.random(Config.hoodcopperlow, Config.hoodcopperhigh)
+    local amount2 = math.random(1,6)
     Player.Functions.AddItem("copper", amount2)
     TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['copper'], "add", amount2)
 end)
@@ -428,15 +446,16 @@ end)
 --CAR ENGINE--
 --------------
 
-RegisterServerEvent('mz-scrap:server:BreakdownCarengine', function()
+RegisterServerEvent('mz-scrap:server:BreakdownCarengine')
+AddEventHandler('mz-scrap:server:BreakdownCarengine', function()
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     local carengine = Player.Functions.GetItemByName('carengine')
     if Player.PlayerData.items ~= nil then 
         if carengine ~= nil then 
-            if carengine.amount >= Config.engineneeded then 
-                Player.Functions.RemoveItem("carengine", Config.engineneeded)
-                TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['carengine'], "remove", Config.engineneeded)
+            if carengine.amount >= 1 then 
+                Player.Functions.RemoveItem("carengine", 1)
+                TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['carengine'], "remove", 1)
                 TriggerClientEvent("mz-scrap:client:BreakCarengineMinigame", src)
             else
                 if Config.NotifyType == 'qb' then
@@ -449,30 +468,34 @@ RegisterServerEvent('mz-scrap:server:BreakdownCarengine', function()
     end
 end)
 
-RegisterServerEvent('mz-scrap:server:GetCarenginemats', function()
+RegisterServerEvent('mz-scrap:server:GetCarenginemats')
+AddEventHandler('mz-scrap:server:GetCarenginemats', function()
     local Player = QBCore.Functions.GetPlayer(source)
-    local amount = math.random(Config.engineironlow, Config.engineironhigh)
+    local amount = math.random(1,6)
     Player.Functions.AddItem("iron", amount)
     TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['iron'], "add", amount)
 end)
 
-RegisterServerEvent('mz-scrap:server:GetCarenginemats2', function()
+RegisterServerEvent('mz-scrap:server:GetCarenginemats2')
+AddEventHandler('mz-scrap:server:GetCarenginemats2', function()
     local Player = QBCore.Functions.GetPlayer(source)
-    local amount2 = math.random(Config.enginecopperlow, Config.enginecopperhigh)
+    local amount2 = math.random(1,6)
     Player.Functions.AddItem("copper", amount2)
     TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['copper'], "add", amount2)
 end)
 
-RegisterServerEvent('mz-scrap:server:GetCarenginemats3', function()
+RegisterServerEvent('mz-scrap:server:GetCarenginemats3')
+AddEventHandler('mz-scrap:server:GetCarenginemats3', function()
     local Player = QBCore.Functions.GetPlayer(source)
-    local amount3 = math.random(Config.enginesteellow, Config.enginesteelhigh)
+    local amount3 = math.random(1,6)
     Player.Functions.AddItem("steel", amount3)
     TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['steel'], "add", amount3)
 end)
 
-RegisterServerEvent('mz-scrap:server:GetCarenginemats4', function()
+RegisterServerEvent('mz-scrap:server:GetCarenginemats4')
+AddEventHandler('mz-scrap:server:GetCarenginemats4', function()
     local Player = QBCore.Functions.GetPlayer(source)
-    local amount4 = math.random(Config.enginescraplow, Config.enginescraphigh)
+    local amount4 = math.random(1,6)
     Player.Functions.AddItem("metalscrap", amount4)
     TriggerClientEvent('inventory:client:ItemBox', source, QBCore.Shared.Items['metalscrap'], "add", amount4)
 end)
@@ -486,7 +509,7 @@ RegisterNetEvent("mz-scrap:server:sellPawnItems", function(itemName, itemAmount,
     local Player = QBCore.Functions.GetPlayer(src)
     local totalPrice = (tonumber(itemAmount) * itemPrice)
     if Player.Functions.RemoveItem(itemName, tonumber(itemAmount)) then
-        Player.Functions.AddMoney("cash", totalPrice)
+        Player.Functions.AddMoney("cash", totalPrice, "scrapyard selling")
         TriggerClientEvent("QBCore:Notify", src, Lang:t('success.sold', {value = tonumber(itemAmount), value2 = QBCore.Shared.Items[itemName].label, value3 = totalPrice}), 'success')
         TriggerClientEvent('inventory:client:ItemBox', src, QBCore.Shared.Items[itemName], 'remove')
     else
