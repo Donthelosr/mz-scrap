@@ -1,7 +1,7 @@
 ## MZ-SCRAP
 A FiveM resource which allows players to scrap wrecks found in GTA V with experience and item progression.
 
-_By Mr_Zain#4139_
+_By Mr_Zain#4139_ edited by Donthelosr
 
 ## PREVIEW
 
